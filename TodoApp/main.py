@@ -1,11 +1,19 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI,Request
 from .routers import auth,todos,admin,users
 from .database import engine
 from .models import Base
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from TodoApp.scheduler.reminder_scheduler import reminder_scheduler
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    reminder_scheduler.start()
+    yield
+    await reminder_scheduler.stop()
+
+app = FastAPI(lifespan=lifespan)
 
 Base.metadata.create_all(bind = engine)
 

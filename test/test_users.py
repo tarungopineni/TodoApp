@@ -1,6 +1,6 @@
 from .utils import *
-from ..routers.users import get_db,get_current_user
-from ..routers.auth import bcrypt_context
+from TodoApp.routers.users import get_db,get_current_user
+from TodoApp.routers.auth import bcrypt_context
 from fastapi import status
 
 app.dependency_overrides[get_db] = override_get_db

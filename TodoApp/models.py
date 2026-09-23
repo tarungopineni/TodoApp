@@ -22,4 +22,5 @@ class Todos(Base):
     complete = Column(Boolean,default=False)
     owner_id = Column(Integer,ForeignKey("users.id"))
     task_datetime = Column(DateTime,nullable=True)
-    deadline = Column(DateTime,nullable=True)
+    deadline = Column(DateTime,nullable=True)
+    mail_sent = Column(Boolean,default=False,nullable=False)

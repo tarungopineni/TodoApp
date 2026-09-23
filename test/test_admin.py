@@ -1,7 +1,6 @@
 from .utils import *
-from ..routers.admin import get_current_user,get_db
-from ..main import app
-from fastapi import status
+from TodoApp.routers.admin import get_current_user,get_db
+from TodoApp.main import app
 
 app.dependency_overrides[get_db] = override_get_db
 app.dependency_overrides[get_current_user] = override_get_current_user
@@ -9,7 +8,7 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 def test_read_all(test_todo):
     response = client.get("/admin/todo")
     assert response.status_code == 200
-    assert response.json() == [{"id":1,"title" : "learn coding","description" : "learn everyday","priority" : 5,"complete" : False,"owner_id" : 1,"task_datetime": None, "deadline": None}]
+    assert response.json() == [{"id":1,"title" : "learn coding","description" : "learn everyday","priority" : 5,"complete" : False,"owner_id" : 1,"task_datetime": None, "deadline": None, "mail_sent": False}]
 
 def test_admin_delete_todo(test_todo):
     response = client.delete('/admin/todo/1')

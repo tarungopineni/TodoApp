@@ -1,5 +1,5 @@
 from .utils import *
-from ..routers.auth import *
+from TodoApp.routers.auth import *
 from fastapi import status
 from jose import jwt
 import pytest

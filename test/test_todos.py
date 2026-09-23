@@ -1,6 +1,6 @@
-from ..routers.todos import get_db,get_current_user
+from TodoApp.routers.todos import get_db,get_current_user
 from fastapi import status
-from ..models import Todos
+from TodoApp.models import Todos
 from .utils import *
 from datetime import datetime
 
@@ -10,12 +10,12 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 def test_read_all_authenticated(test_todo):
     response = client.get("/todos")
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == [{"id":1,"title":"learn coding","description":"learn everyday","complete":False,"owner_id":1,"priority":5,"task_datetime":None,"deadline":None}]
+    assert response.json() == [{"id":1,"title":"learn coding","description":"learn everyday","complete":False,"owner_id":1,"priority":5,"task_datetime":None,"deadline":None,"mail_sent":False}]
 
 def test_read_one_authenticated(test_todo):
     response = client.get("/todos/todo/1")
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"id":1,"title":"learn coding","description":"learn everyday","complete":False,"owner_id":1,"priority":5,"task_datetime":None,"deadline":None}
+    assert response.json() == {"id":1,"title":"learn coding","description":"learn everyday","complete":False,"owner_id":1,"priority":5,"task_datetime":None,"deadline":None,"mail_sent":False}
 
 def test_read_one_authenticated_not_found():
     response = client.get("/todos/todo/999")
