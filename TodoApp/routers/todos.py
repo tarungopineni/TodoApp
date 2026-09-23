@@ -1,7 +1,7 @@
 from ..models import Todos
 from pydantic import BaseModel
 from typing import Annotated, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import Depends,HTTPException,Path,APIRouter
 from pydantic import Field
@@ -32,6 +32,25 @@ class TodoRequest(BaseModel):
     task_datetime: Optional[datetime] = None
     deadline: Optional[datetime] = None
 
+def validate_todo_datetimes(task_dt: Optional[datetime], deadline_dt: Optional[datetime]):
+    now = datetime.now(timezone.utc)
+    def to_utc(dt: datetime) -> datetime:
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+
+    if task_dt is not None:
+        if to_utc(task_dt) < now:
+            raise HTTPException(status_code=400, detail="Start time cannot be in the past.")
+
+    if deadline_dt is not None:
+        if to_utc(deadline_dt) < now:
+            raise HTTPException(status_code=400, detail="Deadline cannot be in the past.")
+
+    if task_dt is not None and deadline_dt is not None:
+        if to_utc(deadline_dt) < to_utc(task_dt):
+            raise HTTPException(status_code=400, detail="Deadline cannot be before the task start time.")
+
 @router.get("/")
 async def read_all(user:user_dependency,db:db_dependency,status_code=status.HTTP_200_OK):
     if user is None:
@@ -51,6 +70,7 @@ async def get_todo(user:user_dependency,db:db_dependency,todo_id:int = Path(gt=0
 async def create_todo(user:user_dependency,db:db_dependency,todo_request:TodoRequest):
     if user is None:
         raise HTTPException(status_code=401,detail = "Authentication failed!!")
+    validate_todo_datetimes(todo_request.task_datetime, todo_request.deadline)
     todo_model = Todos(**todo_request.model_dump(),owner_id = user.get("id"))
     db.add(todo_model)
     db.commit()
@@ -60,6 +80,7 @@ async def create_todo(user:user_dependency,db:db_dependency,todo_request:TodoReq
 async def update_todo(user:user_dependency,db:db_dependency,todo_id:int,request:TodoRequest):
     if user is None:
         raise HTTPException(status_code=401,detail = "Authentication failed!!")
+    validate_todo_datetimes(request.task_datetime, request.deadline)
     todo_model = db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.get("id")).first()
     if todo_model is None:
         raise HTTPException(status_code=404,detail="todo not found")

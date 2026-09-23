@@ -114,3 +114,42 @@ def test_delete_todo_not_found(test_todo):
     response = client.delete('/todos/todo/999')
     assert response.status_code == 404
     assert response.json() == {"detail":"model not found!!"}
+
+def test_create_todo_past_task_datetime(test_todo):
+    request_data = {
+        'title': "Past task datetime todo",
+        "description": "New todo description",
+        "priority": 5,
+        "complete": False,
+        "task_datetime": "2020-01-01T10:00:00",
+        "deadline": "2026-10-05T18:00:00"
+    }
+    response = client.post('/todos/todos', json=request_data)
+    assert response.status_code == 400
+    assert response.json() == {'detail': 'Start time cannot be in the past.'}
+
+def test_create_todo_past_deadline(test_todo):
+    request_data = {
+        'title': "Past deadline todo",
+        "description": "New todo description",
+        "priority": 5,
+        "complete": False,
+        "task_datetime": "2026-10-01T10:00:00",
+        "deadline": "2020-01-01T10:00:00"
+    }
+    response = client.post('/todos/todos', json=request_data)
+    assert response.status_code == 400
+    assert response.json() == {'detail': 'Deadline cannot be in the past.'}
+
+def test_create_todo_deadline_before_start_time(test_todo):
+    request_data = {
+        'title': "Deadline before start time todo",
+        "description": "New todo description",
+        "priority": 5,
+        "complete": False,
+        "task_datetime": "2026-10-10T10:00:00",
+        "deadline": "2026-10-05T10:00:00"
+    }
+    response = client.post('/todos/todos', json=request_data)
+    assert response.status_code == 400
+    assert response.json() == {'detail': 'Deadline cannot be before the task start time.'}

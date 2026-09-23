@@ -2,7 +2,6 @@ import asyncio
 import logging
 from typing import Optional
 from TodoApp.database import SessionLocal
-from TodoApp.services.email_service import is_email_configured
 from TodoApp.services.reminder_service import process_reminders
 
 logger = logging.getLogger("reminder_scheduler")
@@ -11,20 +10,12 @@ class ReminderScheduler:
     def __init__(self, interval_seconds: int = 60):
         self.interval_seconds = interval_seconds
         self._task: Optional[asyncio.Task] = None
-        self._running = False
+        self._running: bool = False
         self._lock = asyncio.Lock()
 
     def start(self):
-        """
-        Starts the background scheduler task.
-        Non-blocking: creates an asyncio background task on the active event loop.
-        Never crashes or prevents application startup even if email configuration is missing or invalid.
-        """
         if self._running:
             return
-
-        if not is_email_configured():
-            logger.warning("Email reminders disabled: SMTP configuration is incomplete.")
 
         self._running = True
         try:
@@ -32,7 +23,6 @@ class ReminderScheduler:
             self._task = loop.create_task(self._run_loop())
             logger.info("Deadline reminder scheduler started.")
         except RuntimeError:
-            # If no running loop yet, task can be scheduled later or created on lifespan
             logger.warning("No running asyncio event loop found during scheduler start.")
 
     async def _run_loop(self):
@@ -50,6 +40,7 @@ class ReminderScheduler:
             try:
                 await asyncio.sleep(self.interval_seconds)
             except asyncio.CancelledError:
+                logger.info("Deadline reminder scheduler sleep cancelled.")
                 break
 
     def _execute_check(self):
@@ -62,9 +53,6 @@ class ReminderScheduler:
             db.close()
 
     async def stop(self):
-        """
-        Stops the background scheduler cleanly.
-        """
         if not self._running:
             return
 
