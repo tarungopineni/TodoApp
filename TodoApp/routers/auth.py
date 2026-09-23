@@ -11,6 +11,7 @@ from jose import jwt, JWTError
 from datetime import timedelta, datetime, timezone
 from starlette import status
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.exc import IntegrityError
 
 def get_db():
     db = SessionLocal()
@@ -96,13 +97,59 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-@router.post("/create")
-async def create_user(db: db_dependency,Req: User_Request):
-    Req.hashed_password = bcrypt_context.hash(Req.hashed_password)
-    final_model = Users(**Req.model_dump())
-    db.add(final_model)
-    db.commit()
-    return {"message": "User inserted!!"}
+@router.post("/create", status_code=status.HTTP_201_CREATED)
+async def create_user(db: db_dependency, Req: User_Request):
+
+    # Check if username already exists
+    existing_username = db.query(Users).filter(
+        Users.username == Req.username
+    ).first()
+
+    if existing_username:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already exists"
+        )
+
+    # Check if email already exists
+    existing_email = db.query(Users).filter(
+        Users.email == Req.email
+    ).first()
+
+    if existing_email:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already exists"
+        )
+
+    # Hash password
+    hashed_password = bcrypt_context.hash(Req.hashed_password)
+
+    # Create user
+    final_model = Users(
+        email=Req.email,
+        username=Req.username,
+        first_name=Req.first_name,
+        last_name=Req.last_name,
+        role=Req.role,
+        hashed_password=hashed_password
+    )
+
+    try:
+        db.add(final_model)
+        db.commit()
+        db.refresh(final_model)
+
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username or email already exists"
+        )
+
+    return {
+        "message": "User created successfully"
+    }
 
 @router.post("/token")
 async def login(db: db_dependency,form_data: Annotated[OAuth2PasswordRequestForm,Depends()]):
